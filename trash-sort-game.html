@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>♻️ Trash Hero — เกมแยกขยะ</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800;900&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --green: #3fb950;
+  --blue: #58a6ff;
+  --yellow: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --orange: #f0883e;
+  --cyan: #39d353;
+  --glow-green: rgba(63, 185, 80, 0.4);
+  --glow-blue: rgba(88, 166, 255, 0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* === PARTICLES BG === */
+#particles {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+}
+
+.screen {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 480px;
+  padding: 16px;
+}
+
+/* === CARDS === */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+}
+
+.card-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.card-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 28px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+.field label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+  font-family: 'Prompt', sans-serif;
+  font-weight: 600;
+}
+.field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Sarabun', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(88,166,255,.15);
+}
+
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, filter .15s;
+  margin-top: 4px;
+}
+.btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #238636, #2ea043);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(46,160,67,.3);
+}
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+.link-btn {
+  background: none; border: none;
+  color: var(--blue); cursor: pointer;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 0.9rem; text-decoration: underline;
+  margin-top: 16px; display: block; text-align: center;
+}
+
+.msg { font-size:.85rem; margin-top:10px; text-align:center; min-height:20px; }
+.msg.err { color: var(--red); }
+.msg.ok  { color: var(--green); }
+
+/* ===== GAME SCREEN ===== */
+#gameScreen {
+  display: none;
+  flex-direction: column;
+  width: 100vw; height: 100vh;
+  position: fixed; inset: 0; z-index: 10;
+  background: #0a1628;
+  overflow: hidden;
+}
+
+/* HUD */
+#hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(0,0,0,.5);
+  border-bottom: 1px solid #1e2d40;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.hud-item {
+  font-family: 'Prompt', sans-serif;
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.hud-score { color: #ffd700; }
+.hud-timer { color: var(--red); }
+.hud-level { color: var(--purple); }
+.hud-combo { color: var(--orange); }
+.hud-name  { color: var(--cyan); margin-left: auto; }
+
+/* BINS ROW */
+#binsRow {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #0d1f35, transparent);
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.bin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: default;
+  user-select: none;
+}
+.bin-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,.2));
+  transition: transform .15s;
+}
+.bin.highlight .bin-icon {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 12px gold);
+}
+.bin-label {
+  font-family: 'Prompt', sans-serif;
+  font-size: .6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* GAME FIELD */
+#gameField {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0,100,60,.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0,60,120,.08) 0%, transparent 60%),
+    #0a1628;
+}
+
+/* Grid lines */
+#gameField::before {
+  content:'';
+  position: absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* PLAYER */
+#player {
+  position: absolute;
+  width: 36px; height: 44px;
+  transition: left .05s linear, top .05s linear;
+  z-index: 5;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
+}
+
+.player-body {
+  font-size: 2rem;
+  transition: transform .1s;
+}
+
+.player-carry {
+  font-size: 1rem;
+  position: absolute;
+  top: -14px;
+  right: -8px;
+  background: rgba(0,0,0,.6);
+  border-radius: 8px;
+  padding: 1px 3px;
+  border: 1px solid rgba(255,255,255,.2);
+}
+
+/* TRASH ITEMS */
+.trash-item {
+  position: absolute;
+  font-size: 2rem;
+  cursor: default;
+  user-select: none;
+  z-index: 4;
+  transition: box-shadow .2s;
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  animation: floatTrash 3s ease-in-out infinite alternate;
+}
+.trash-item.nearby {
+  box-shadow: 0 0 16px 4px gold;
+  border-color: gold;
+}
+.trash-item.carried {
+  opacity: 0;
+}
+
+@keyframes floatTrash {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-6px); }
+}
+
+/* SCORE POPUP */
+.score-popup {
+  position: absolute;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 20;
+  animation: popUp 1.2s forwards;
+  text-shadow: 0 0 8px currentColor;
+}
+@keyframes popUp {
+  0%   { opacity:1; transform: translateY(0) scale(1); }
+  60%  { opacity:1; transform: translateY(-40px) scale(1.2); }
+  100% { opacity:0; transform: translateY(-80px) scale(.8); }
+}
+
+/* FLASH */
+.flash-good {
+  animation: flashGood .4s forwards;
+}
+.flash-bad {
+  animation: flashBad .4s forwards;
+}
+@keyframes flashGood {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(2) hue-rotate(90deg); }
+}
+@keyframes flashBad {
+  0%,100% { filter: brightness(1); }
+  25%,75% { filter: brightness(2) saturate(3) hue-rotate(-30deg); }
+}
+
+/* OVERLAY */
+#overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.75);
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+#overlay.show { display: flex; }
+
+.overlay-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 36px;
+  text-align: center;
+  max-width: 360px; width: 90%;
+  box-shadow: 0 0 60px rgba(0,0,0,.8);
+}
+.overlay-box h2 {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.8rem; font-weight: 900;
+  margin-bottom: 8px;
+}
+.overlay-box p {
+  color: var(--muted); font-size: .9rem;
+  margin-bottom: 20px;
+}
+.score-big {
+  font-family: 'Prompt', sans-serif;
+  font-size: 3rem; font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,.5);
+  margin: 10px 0;
+}
+
+/* COMBO indicator */
+#comboBar {
+  position: fixed; bottom: 16px; right: 16px;
+  z-index: 20;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem; font-weight: 900;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.6);
+  border: 2px solid var(--orange);
+  color: var(--orange);
+  opacity: 0;
+  transition: opacity .3s;
+  text-shadow: 0 0 10px var(--orange);
+  pointer-events: none;
+}
+
+/* ===== TRASH GUIDE SCREEN ===== */
+#guideScreen {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 560px;
+  padding: 16px;
+  display: none;
+}
+#guideScreen .card {
+  max-height: 92vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.guide-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--green), var(--cyan), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.guide-sub { text-align:center; color:var(--muted); font-size:.8rem; margin-bottom:6px; }
+.guide-intro {
+  text-align:center; font-size:.78rem; color:var(--muted);
+  background:rgba(255,255,255,.03); border:1px solid var(--border);
+  border-radius:10px; padding:10px 14px; margin-bottom:16px; line-height:1.7;
+}
+.guide-tabs {
+  display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; justify-content:center;
+}
+.guide-tab {
+  font-family:'Prompt',sans-serif; font-size:.72rem; font-weight:700;
+  padding:5px 10px; border-radius:20px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--muted); cursor:pointer; transition:all .2s;
+}
+.guide-tab.active, .guide-tab:hover { color:#fff; border-color:currentColor; }
+.bin-section { border-radius:14px; border:1px solid; margin-bottom:14px; overflow:hidden; }
+.bin-section-header {
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  font-family:'Prompt',sans-serif; font-weight:700; font-size:1rem;
+}
+.bin-section-header .bin-icon-big { font-size:1.8rem; }
+.bin-section-header .bin-header-text { flex:1; }
+.bin-section-header .bin-header-name { font-size:1rem; }
+.bin-section-header .bin-header-tag {
+  font-size:.65rem; font-weight:600; opacity:.7; margin-top:1px;
+}
+.bin-section-tips {
+  padding:8px 16px; font-size:.78rem; line-height:1.7;
+  border-top:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.bin-section-desc {
+  padding:8px 16px 10px; font-size:.78rem; color:var(--muted); line-height:1.6;
+}
+.bin-section-body { padding:10px 16px 14px; display:flex; flex-wrap:wrap; gap:6px; }
+.trash-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 10px; border-radius:20px; font-size:.78rem;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); white-space:nowrap;
+  transition:all .2s;
+}
+.trash-chip:hover { background:rgba(255,255,255,.1); transform:translateY(-1px); }
+.guide-warning {
+  margin-top:4px; padding:10px 14px; border-radius:10px; font-size:.76rem;
+  background:rgba(248,81,73,.08); border:1px solid rgba(248,81,73,.2);
+  color:#f8a09e; line-height:1.6;
+}
+.guide-tip-icon { margin-right:4px; }
+
+/* ===== LEADERBOARD SCREEN ===== */
+#lbScreen {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 520px;
+  padding: 16px;
+  display: none;
+}
+#lbScreen .card { max-height:90vh; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.lb-title {
+  font-family:'Prompt',sans-serif; font-size:1.8rem; font-weight:900; text-align:center; margin-bottom:4px;
+  background:linear-gradient(135deg,#ffd700,var(--orange),#f85149);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.lb-sub { text-align:center; color:var(--muted); font-size:.8rem; margin-bottom:6px; }
+.lb-stats-row {
+  display:flex; gap:8px; margin-bottom:16px; justify-content:center;
+}
+.lb-stat-chip {
+  font-family:'Prompt',sans-serif; font-size:.7rem; font-weight:700;
+  padding:4px 10px; border-radius:20px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  color:var(--muted);
+}
+.lb-podium {
+  display:flex; align-items:flex-end; justify-content:center; gap:8px;
+  margin-bottom:20px; padding:10px 0 0;
+}
+.podium-slot {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  flex:1; max-width:120px;
+}
+.podium-avatar {
+  font-size:1.8rem;
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid;
+}
+.podium-slot.p1 .podium-avatar { border-color:gold; background:rgba(255,215,0,.15); box-shadow:0 0 20px rgba(255,215,0,.3); }
+.podium-slot.p2 .podium-avatar { border-color:silver; background:rgba(192,192,192,.1); }
+.podium-slot.p3 .podium-avatar { border-color:#cd7f32; background:rgba(205,127,50,.1); }
+.podium-name { font-family:'Prompt',sans-serif; font-size:.7rem; font-weight:700; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; }
+.podium-score { font-family:'Prompt',sans-serif; font-size:.85rem; font-weight:900; color:#ffd700; }
+.podium-block {
+  width:100%; border-radius:8px 8px 0 0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Prompt',sans-serif; font-weight:900; font-size:1.1rem;
+}
+.podium-slot.p1 .podium-block { height:54px; background:linear-gradient(180deg,rgba(255,215,0,.3),rgba(255,215,0,.1)); border:1px solid rgba(255,215,0,.4); }
+.podium-slot.p2 .podium-block { height:38px; background:linear-gradient(180deg,rgba(192,192,192,.2),rgba(192,192,192,.06)); border:1px solid rgba(192,192,192,.3); }
+.podium-slot.p3 .podium-block { height:26px; background:linear-gradient(180deg,rgba(205,127,50,.2),rgba(205,127,50,.06)); border:1px solid rgba(205,127,50,.3); }
+.lb-divider { border:none; border-top:1px solid var(--border); margin:4px 0 12px; }
+.lb-row {
+  display:flex; align-items:center; gap:12px; padding:10px 14px;
+  border-radius:10px; margin-bottom:6px;
+  background:var(--surface2); border:1px solid var(--border); transition:all .2s;
+}
+.lb-row:hover { border-color:rgba(255,255,255,.15); transform:translateX(2px); }
+.lb-row.me   { border-color:var(--blue); background:rgba(88,166,255,.06); }
+.lb-rank { font-family:'Prompt',sans-serif; font-size:1rem; font-weight:900; width:28px; text-align:center; flex-shrink:0; color:var(--muted); }
+.lb-name { flex:1; font-family:'Prompt',sans-serif; font-size:.88rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lb-score { font-family:'Prompt',sans-serif; font-size:1rem; font-weight:900; color:#ffd700; flex-shrink:0; }
+.lb-bar-wrap { flex:none; width:60px; height:4px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; }
+.lb-bar { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--green),var(--blue)); }
+.lb-empty { text-align:center; color:var(--muted); padding:40px 0; font-size:.9rem; }
+.lb-empty-icon { font-size:3rem; margin-bottom:12px; }
+.lb-my-rank {
+  margin-top:12px; padding:10px 14px; border-radius:10px;
+  background:rgba(88,166,255,.08); border:1px solid rgba(88,166,255,.25);
+  text-align:center; font-family:'Prompt',sans-serif; font-size:.82rem; color:var(--blue);
+}
+
+/* NAV TABS */
+.nav-tabs { display:flex; gap:6px; margin-top:14px; justify-content:center; flex-wrap:wrap; }
+.nav-tab {
+  background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+  border-radius:8px; padding:6px 14px; font-family:'Prompt',sans-serif; font-size:.8rem;
+  font-weight:700; cursor:pointer; transition:all .2s;
+}
+.nav-tab:hover { border-color:var(--blue); color:var(--blue); }
+
+/* TRASH TYPES legend */
+#legend {
+  position: fixed; bottom: 16px; left: 16px;
+  z-index: 20;
+  font-size: .65rem;
+  color: var(--muted);
+  line-height: 1.8;
+  background: rgba(0,0,0,.5);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.instruction-hint {
+  text-align: center;
+  font-size: .75rem;
+  color: var(--muted);
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  line-height: 1.6;
+}
+
+/* STARS */
+.stars {
+  font-size: 1.5rem;
+  margin: 8px 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 480px) {
+  .card { padding: 24px 18px; }
+  .card-title { font-size: 1.5rem; }
+  .bin-icon { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<!-- ======= REGISTER SCREEN ======= -->
+<div class="screen" id="registerScreen">
+  <div class="card">
+    <div class="card-title">♻️ TRASH HERO</div>
+    <div class="card-sub">สร้างบัญชีเพื่อเล่นเกม</div>
+    <div class="field">
+      <label>ชื่อผู้ใช้ (Username)</label>
+      <input type="text" id="regUser" placeholder="เช่น hero123" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน (Password)</label>
+      <input type="password" id="regPass" placeholder="อย่างน้อย 4 ตัวอักษร" maxlength="30">
+    </div>
+    <div class="field">
+      <label>ชื่อในเกม (Display Name)</label>
+      <input type="text" id="regName" placeholder="เช่น ฮีโร่มหาเทพ" maxlength="20" autocomplete="off">
+    </div>
+    <div class="msg err" id="regMsg"></div>
+    <button class="btn btn-primary" onclick="doRegister()">✅ สมัครสมาชิก</button>
+    <button class="link-btn" onclick="switchTo('loginScreen')">มีบัญชีแล้ว? เข้าสู่ระบบ</button>
+    <div class="instruction-hint">🎮 ใช้ปุ่มลูกศร เดินเก็บขยะ → นำไปทิ้งที่ถังขยะด้านบน<br>ทิ้งถูกประเภท +คะแนน | ทิ้งผิด −คะแนน</div>
+  </div>
+</div>
+
+<!-- ======= LOGIN SCREEN ======= -->
+<div class="screen" id="loginScreen" style="display:none">
+  <div class="card">
+    <div class="card-title">♻️ TRASH HERO</div>
+    <div class="card-sub">เข้าสู่ระบบเพื่อเล่น</div>
+    <div class="field">
+      <label>ชื่อผู้ใช้</label>
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="loginPass" placeholder="Password">
+    </div>
+    <div class="msg err" id="loginMsg"></div>
+    <button class="btn btn-primary" onclick="doLogin()">🚀 เข้าสู่ระบบ</button>
+    <button class="link-btn" onclick="switchTo('registerScreen')">ยังไม่มีบัญชี? สมัครสมาชิก</button>
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="showGuide()">📋 ประเภทขยะ</button>
+      <button class="nav-tab" onclick="showLeaderboard()">🏆 อันดับ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= TRASH GUIDE SCREEN ======= -->
+<div class="screen" id="guideScreen" style="display:none;max-width:560px">
+  <div class="card">
+    <div class="guide-title">📋 คู่มือแยกขยะ</div>
+    <div class="guide-sub">รู้จักขยะแต่ละประเภท แยกให้ถูก โลกสะอาด!</div>
+    <div class="guide-intro">
+      🌍 การแยกขยะที่ถูกต้องช่วยลดมลพิษ ประหยัดพลังงาน และรักษาสิ่งแวดล้อม<br>
+      ในเกมมี <strong style="color:var(--text)">5 ประเภทหลัก</strong> — เรียนรู้ให้ครบเพื่อทำคะแนนสูงสุด!
+    </div>
+    <div class="guide-tabs" id="guideTabs"></div>
+    <div id="guideContent"></div>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="switchTo('loginScreen')">← กลับ</button>
+  </div>
+</div>
+
+<!-- ======= LEADERBOARD SCREEN ======= -->
+<div class="screen" id="lbScreen" style="display:none">
+  <div class="card">
+    <div class="lb-title">🏆 Hall of Fame</div>
+    <div class="lb-sub">10 อันดับนักแยกขยะสุดเก่ง</div>
+    <div class="lb-stats-row" id="lbStatsRow"></div>
+    <div id="lbPodium"></div>
+    <hr class="lb-divider">
+    <div id="lbContent"></div>
+    <div id="lbMyRank"></div>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="switchTo('loginScreen')">← กลับ</button>
+  </div>
+</div>
+
+<!-- ======= GAME SCREEN ======= -->
+<div id="gameScreen">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-item hud-score">⭐ <span id="scoreDisplay">0</span></div>
+    <div class="hud-item hud-timer">⏱ <span id="timerDisplay">60</span>s</div>
+    <div class="hud-item hud-level">Lv.<span id="levelDisplay">1</span></div>
+    <div class="hud-item hud-combo" id="comboHud" style="display:none">🔥 x<span id="comboDisplay">1</span></div>
+    <div class="hud-item hud-name" id="playerNameHud"></div>
+    <button onclick="pauseGame()" style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:'Prompt',sans-serif;font-size:.8rem;">⏸</button>
+  </div>
+
+  <!-- BINS -->
+  <div id="binsRow"></div>
+
+  <!-- FIELD -->
+  <div id="gameField">
+    <div id="player">
+      <div class="player-body" id="playerBody">🧑</div>
+      <div class="player-carry" id="playerCarry" style="display:none"></div>
+    </div>
+  </div>
+
+  <div id="comboBar">🔥 COMBO x<span id="comboBarNum">1</span></div>
+  <div id="legend">🎮 ลูกศร = เดิน | SPACE = เก็บ/ทิ้ง</div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="overlay-box" id="overlayBox">
+    <h2 id="overlayTitle"></h2>
+    <p id="overlayMsg"></p>
+    <div class="score-big" id="overlayScore"></div>
+    <div class="stars" id="overlayStars"></div>
+    <button class="btn btn-primary" id="overlayBtn1" style="margin-top:8px;"></button>
+    <button class="btn btn-secondary" id="overlayBtn2" style="display:none"></button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PARTICLE BACKGROUND
+   ============================================================ */
+(function(){
+  const c = document.getElementById('particles');
+  const ctx = c.getContext('2d');
+  let W,H,pts=[];
+  const N=50;
+
+  function resize(){
+    W=c.width=innerWidth; H=c.height=innerHeight;
+    pts=[];
+    for(let i=0;i<N;i++) pts.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+      r:Math.random()*2+.5,
+      a:Math.random()*.5+.1
+    });
+  }
+  resize(); addEventListener('resize',resize);
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(88,166,255,${p.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+function getUsers(){ return JSON.parse(localStorage.getItem('th_users')||'{}'); }
+function saveUsers(u){ localStorage.setItem('th_users',JSON.stringify(u)); }
+function getScores(){ return JSON.parse(localStorage.getItem('th_scores')||'{}'); }
+function saveScores(s){ localStorage.setItem('th_scores',JSON.stringify(s)); }
+
+let currentUser = null;
+
+function switchTo(id){
+  ['registerScreen','loginScreen','guideScreen','lbScreen'].forEach(s=>{
+    const el = document.getElementById(s);
+    if(!el) return;
+    if(s === id){
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+  // Scroll to top of visible card
+  const el = document.getElementById(id);
+  if(el){ const card = el.querySelector('.card'); if(card) card.scrollTop = 0; }
+}
+
+function showGuide(activeId){
+  const GUIDE = [
+    { id:'recycle', label:'ขยะรีไซเคิล', emoji:'♻️', binIcon:'🔵', color:'#58a6ff', bg:'rgba(88,166,255,.07)',
+      tag:'Recyclable Waste',
+      desc:'วัสดุที่ผ่านกระบวนการแปรรูปใหม่ได้ เช่น กระดาษ พลาสติกสะอาด แก้ว และโลหะ ช่วยลดการใช้ทรัพยากรธรรมชาติ',
+      tips:'✅ ล้างทำความสะอาดก่อนทิ้ง\n✅ พับกล่องให้แบนเพื่อประหยัดพื้นที่\n✅ แยกฝาขวดออกจากตัวขวด\n❌ อย่าใส่ถ้าเปื้อนอาหารหรือน้ำมัน',
+      items:[
+        {e:'📦',n:'กล่องกระดาษ'},{e:'🥤',n:'แก้วพลาสติก'},{e:'🗞️',n:'หนังสือพิมพ์'},
+        {e:'🍾',n:'ขวดแก้ว'},{e:'📰',n:'กระดาษ'},{e:'🥫',n:'กระป๋องโลหะ'},
+        {e:'📁',n:'แฟ้มเอกสาร'},{e:'🛒',n:'ตะกร้าพลาสติก'},{e:'📮',n:'ซองไปรษณีย์'},
+      ],
+      warning:null
+    },
+    { id:'organic', label:'ขยะอินทรีย์', emoji:'🌿', binIcon:'🟢', color:'#3fb950', bg:'rgba(63,185,80,.07)',
+      tag:'Organic Waste',
+      desc:'เศษอาหารและวัสดุจากพืช ย่อยสลายได้ตามธรรมชาติ สามารถนำไปทำปุ๋ยหมักหรืออาหารสัตว์ได้',
+      tips:'✅ ทิ้งทันทีหรือเก็บในถังมีฝาปิด\n✅ สามารถนำไปทำ Compost ที่บ้านได้\n✅ รวมเศษอาหารทุกชนิดที่ย่อยสลายได้\n❌ อย่าใส่กระดาษเคลือบหรือถุงพลาสติก',
+      items:[
+        {e:'🍌',n:'เปลือกกล้วย'},{e:'🍎',n:'เศษผลไม้'},{e:'🥕',n:'เศษผัก'},
+        {e:'🌽',n:'ซังข้าวโพด'},{e:'🍂',n:'ใบไม้แห้ง'},{e:'🍚',n:'ข้าวเหลือ'},
+        {e:'🥚',n:'เปลือกไข่'},{e:'🌿',n:'เศษหญ้า'},{e:'☕',n:'กากกาแฟ'},
+      ],
+      warning:null
+    },
+    { id:'general', label:'ขยะทั่วไป', emoji:'🗑️', binIcon:'⬛', color:'#8b949e', bg:'rgba(139,148,158,.07)',
+      tag:'General Waste',
+      desc:'ขยะที่ไม่สามารถรีไซเคิล ย่อยสลาย หรือจัดการแบบพิเศษได้ ต้องนำไปฝังกลบหรือเผาในเตาที่ได้มาตรฐาน',
+      tips:'✅ ใส่ถุงให้มิดชิดก่อนทิ้ง\n✅ อย่าทิ้งของมีคมโดยไม่ห่อ\n⚠️ ตรวจสอบให้แน่ใจว่าไม่ใช่ขยะอันตราย\n❌ อย่าเผาขยะทั่วไปในที่โล่ง',
+      items:[
+        {e:'🧻',n:'กระดาษทิชชู'},{e:'🛍️',n:'ถุงพลาสติกสกปรก'},{e:'🧦',n:'ถุงเท้าเก่า'},
+        {e:'🧢',n:'หมวกเก่า'},{e:'💊',n:'ซองยา'},{e:'🩹',n:'พลาสเตอร์'},
+        {e:'🪥',n:'แปรงสีฟันเก่า'},{e:'🧸',n:'ของเล่นพลาสติก'},{e:'🥡',n:'กล่องโฟม'},
+      ],
+      warning:'⚠️ กล่องโฟม ถุงพลาสติก และของใช้แล้วทิ้ง ควรลดการใช้งานตั้งแต่ต้นทาง เพื่อลดปริมาณขยะทั่วไปในระยะยาว'
+    },
+    { id:'hazard', label:'ขยะอันตราย', emoji:'☣️', binIcon:'🔴', color:'#f85149', bg:'rgba(248,81,73,.07)',
+      tag:'Hazardous Waste',
+      desc:'มีสารพิษ สารเคมี หรือสารที่เป็นอันตรายต่อสุขภาพและสิ่งแวดล้อม ต้องแยกทิ้งในจุดรับขยะอันตรายโดยเฉพาะ',
+      tips:'✅ นำส่งศูนย์รับขยะอันตรายของ อปท.\n✅ เก็บไว้ในภาชนะปิดสนิทก่อนนำส่ง\n✅ อย่าเทสารเคมีลงท่อน้ำทิ้ง\n❌ อย่าทิ้งปนกับขยะทั่วไปเด็ดขาด',
+      items:[
+        {e:'🔋',n:'ถ่านไฟฉาย'},{e:'💡',n:'หลอดไฟ'},{e:'🧪',n:'สารเคมี'},
+        {e:'🔧',n:'กระป๋องสี'},{e:'🧴',n:'ขวดสเปรย์'},{e:'🩺',n:'ยาหมดอายุ'},
+        {e:'🪣',n:'น้ำยาล้าง'},{e:'🛢️',n:'น้ำมันเครื่อง'},{e:'🧨',n:'ดอกไม้ไฟ'},
+      ],
+      warning:'🚨 ขยะอันตรายที่ทิ้งไม่ถูกวิธีอาจปนเปื้อนแหล่งน้ำและดิน ส่งผลร้ายต่อสุขภาพของคนในชุมชน'
+    },
+    { id:'ewaste', label:'ขยะอีเวสต์', emoji:'💾', binIcon:'🟡', color:'#d29922', bg:'rgba(210,153,34,.07)',
+      tag:'Electronic Waste',
+      desc:'อุปกรณ์อิเล็กทรอนิกส์ที่เสื่อมสภาพ มีโลหะหนัก เช่น ตะกั่ว ปรอท และแคดเมียม ต้องส่งศูนย์รับทิ้งอีเวสต์โดยเฉพาะ',
+      tips:'✅ ส่งคืนร้านค้าหรือผู้ผลิตที่เข้าร่วมโครงการ\n✅ ลบข้อมูลส่วนตัวก่อนนำส่ง\n✅ หาข้อมูลจุดรับ e-Waste ใกล้บ้าน\n❌ อย่าทุบหรือเผาอุปกรณ์อิเล็กทรอนิกส์',
+      items:[
+        {e:'📱',n:'โทรศัพท์เก่า'},{e:'💻',n:'แล็ปท็อป'},{e:'🖥️',n:'จอคอมพิวเตอร์'},
+        {e:'🎮',n:'จอยเกม'},{e:'📷',n:'กล้องถ่ายรูป'},{e:'🖨️',n:'เครื่องพิมพ์'},
+        {e:'🔌',n:'อุปกรณ์ชาร์จ'},{e:'📺',n:'โทรทัศน์'},{e:'⌨️',n:'คีย์บอร์ด'},
+      ],
+      warning:'♻️ อุปกรณ์อิเล็กทรอนิกส์หลายชิ้นมีวัสดุที่ถูกนำกลับมาใช้ใหม่ได้ถึง 80% — อย่าทิ้งเปล่า!'
+    },
+  ];
+
+  const active = activeId || GUIDE[0].id;
+  
+  // Render tabs
+  const tabsEl = document.getElementById('guideTabs');
+  tabsEl.innerHTML = GUIDE.map(b=>`
+    <button class="guide-tab ${b.id===active?'active':''}" 
+      style="${b.id===active?`background:${b.color}22;color:${b.color};border-color:${b.color}55;`:''}"
+      onclick="showGuide('${b.id}')">
+      ${b.binIcon} ${b.label}
+    </button>
+  `).join('');
+
+  // Render active section
+  const g = GUIDE.find(x=>x.id===active);
+  const container = document.getElementById('guideContent');
+  const tipsLines = g.tips.split('\n').map(t=>`<div>${t}</div>`).join('');
+  container.innerHTML = `
+    <div class="bin-section" style="border-color:${g.color}44;background:${g.bg}">
+      <div class="bin-section-header" style="background:${g.color}18;color:${g.color}">
+        <div class="bin-icon-big">${g.emoji}</div>
+        <div class="bin-header-text">
+          <div class="bin-header-name">${g.label}</div>
+          <div class="bin-header-tag" style="color:${g.color}aa">${g.tag} · ถัง${g.binIcon}</div>
+        </div>
+      </div>
+      <div class="bin-section-desc">${g.desc}</div>
+      <div class="bin-section-tips" style="color:${g.color}cc">${tipsLines}</div>
+      <div class="bin-section-body">
+        ${g.items.map(i=>`<span class="trash-chip" style="border-color:${g.color}33">${i.e} <span>${i.n}</span></span>`).join('')}
+      </div>
+    </div>
+    ${g.warning ? `<div class="guide-warning">${g.warning}</div>` : ''}
+  `;
+
+  switchTo('guideScreen');
+}
+
+function showLeaderboard(){
+  const scores = getScores();
+  const users  = getUsers();
+  const all = Object.entries(scores)
+    .map(([u,s])=>({ username:u, name:(users[u]?.name||u), score:s }))
+    .sort((a,b)=>b.score-a.score);
+  const entries = all.slice(0,10);
+  const meUser = currentUser?.username;
+  const myRank = all.findIndex(e=>e.username===meUser);
+  const topScore = entries[0]?.score || 1;
+
+  // Stats row
+  const statsEl = document.getElementById('lbStatsRow');
+  statsEl.innerHTML = `
+    <div class="lb-stat-chip">👥 ${all.length} ผู้เล่น</div>
+    <div class="lb-stat-chip">🏅 สูงสุด ${topScore.toLocaleString()}</div>
+    <div class="lb-stat-chip">📊 เฉลี่ย ${all.length?Math.round(all.reduce((s,e)=>s+e.score,0)/all.length).toLocaleString():0}</div>
+  `;
+
+  // Podium (top 3)
+  const podiumEl = document.getElementById('lbPodium');
+  if(entries.length >= 1){
+    const order = entries.length>=3 ? [1,0,2] : entries.length===2 ? [1,0] : [0];
+    const slots = order.map(i=>entries[i]).filter(Boolean);
+    const positions = entries.length>=3 ? ['p2','p1','p3'] : entries.length===2 ? ['p2','p1'] : ['p1'];
+    const blocks = entries.length>=3 ? ['🥈','🥇','🥉'] : entries.length===2 ? ['🥈','🥇'] : ['🥇'];
+    podiumEl.innerHTML = `<div class="lb-podium">
+      ${slots.map((e,i)=>{
+        const pos = positions[i]; const block = blocks[i];
+        const isMe = e.username===meUser;
+        return `<div class="podium-slot ${pos}">
+          <div class="podium-avatar" style="${isMe?'box-shadow:0 0 16px var(--blue);border-color:var(--blue)':''}">${e.name.charAt(0).toUpperCase()}</div>
+          <div class="podium-name" style="${isMe?'color:var(--blue)':''}">${e.name}${isMe?' ⭐':''}</div>
+          <div class="podium-score">${e.score.toLocaleString()}</div>
+          <div class="podium-block">${block}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    podiumEl.innerHTML = '';
+  }
+
+  // List (ranks 4–10 or all if < 4)
+  const container = document.getElementById('lbContent');
+  const listEntries = entries.length > 3 ? entries.slice(3) : [];
+  if(entries.length === 0){
+    container.innerHTML = `<div class="lb-empty"><div class="lb-empty-icon">🚀</div>ยังไม่มีสถิติ<br>เป็นคนแรกที่เล่นเลย!</div>`;
+  } else if(listEntries.length === 0){
+    container.innerHTML = '';
+  } else {
+    container.innerHTML = listEntries.map((e,i)=>{
+      const rank = i+4;
+      const isMe = e.username===meUser;
+      const pct = Math.round((e.score/topScore)*100);
+      return `<div class="lb-row ${isMe?'me':''}">
+        <div class="lb-rank" style="color:${isMe?'var(--blue)':'var(--muted)'}">#${rank}</div>
+        <div class="lb-name">${e.name}${isMe?' <span style="color:var(--blue);font-size:.68rem;font-family:Sarabun">(คุณ)</span>':''}</div>
+        <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
+        <div class="lb-score">${e.score.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // My rank banner (if outside top 10)
+  const myRankEl = document.getElementById('lbMyRank');
+  if(myRank >= 10 && meUser){
+    const me = all[myRank];
+    myRankEl.innerHTML = `<div class="lb-my-rank">คุณอยู่อันดับที่ #${myRank+1} — คะแนน ${me.score.toLocaleString()} — สู้ต่อไป! 💪</div>`;
+  } else {
+    myRankEl.innerHTML = '';
+  }
+
+  switchTo('lbScreen');
+}
+
+function doRegister(){
+  const u=document.getElementById('regUser').value.trim();
+  const p=document.getElementById('regPass').value;
+  const n=document.getElementById('regName').value.trim();
+  const msg=document.getElementById('regMsg');
+  if(!u||!p||!n){ msg.textContent='กรุณากรอกข้อมูลให้ครบ'; return; }
+  if(p.length<4){ msg.textContent='รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'; return; }
+  const users=getUsers();
+  if(users[u]){ msg.textContent='ชื่อผู้ใช้นี้มีอยู่แล้ว'; return; }
+  users[u]={password:p,name:n};
+  saveUsers(users);
+  msg.className='msg ok'; msg.textContent='สมัครสำเร็จ! กำลังเข้าสู่ระบบ...';
+  setTimeout(()=>{ currentUser={username:u,name:n}; startGame(); },800);
+}
+
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const msg=document.getElementById('loginMsg');
+  const users=getUsers();
+  if(!users[u]||users[u].password!==p){ msg.textContent='ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; return; }
+  currentUser={username:u,name:users[u].name};
+  startGame();
+}
+
+// Enter key support
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('registerScreen').style.display!=='none') doRegister();
+    else doLogin();
+  }
+});
+
+/* ============================================================
+   GAME DATA
+   ============================================================ */
+const BIN_TYPES = [
+  { id:'recycle', label:'รีไซเคิล', icon:'🔵', color:'#58a6ff', items:['📦','🥤','🗞️','🍾','📰'] },
+  { id:'organic',  label:'อินทรีย์',  icon:'🟢', color:'#3fb950', items:['🍌','🍎','🥕','🌽','🍂'] },
+  { id:'general',  label:'ทั่วไป',   icon:'⬛', color:'#8b949e', items:['🧻','🛍️','🧦','🧢','💊'] },
+  { id:'hazard',   label:'อันตราย',  icon:'🔴', color:'#f85149', items:['🔋','💡','🧪','🔧','🖊️'] },
+  { id:'ewaste',   label:'อีเวสต์',  icon:'🟡', color:'#d29922', items:['📱','💻','🖥️','🎮','📷'] },
+];
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+let G = {};
+
+function startGame(){
+  document.getElementById('registerScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('gameScreen').style.display='flex';
+  document.getElementById('playerNameHud').textContent = currentUser.name;
+  initGame();
+}
+
+function initGame(){
+  G = {
+    score: 0,
+    timeLeft: 60,
+    level: 1,
+    combo: 0,
+    maxCombo: 0,
+    paused: false,
+    carrying: null,
+    px: 200, py: 300,
+    speed: 3,
+    keys: {},
+    trashItems: [],
+    trashId: 0,
+    timerInterval: null,
+    loopId: null,
+    spawnInterval: null,
+    fieldW: 0, fieldH: 0,
+    binRects: [],
+  };
+
+  buildBins();
+  document.getElementById('scoreDisplay').textContent = '0';
+  document.getElementById('timerDisplay').textContent = '60';
+  document.getElementById('levelDisplay').textContent = '1';
+  updateComboHud();
+
+  // Position player
+  const field = document.getElementById('gameField');
+  G.fieldW = field.offsetWidth;
+  G.fieldH = field.offsetHeight;
+  G.px = G.fieldW/2 - 18;
+  G.py = G.fieldH/2;
+
+  // Clear old trash
+  field.querySelectorAll('.trash-item').forEach(e=>e.remove());
+  G.trashItems = [];
+
+  const player = document.getElementById('player');
+  player.style.left = G.px+'px';
+  player.style.top  = G.py+'px';
+
+  // Compute bin rects after layout
+  setTimeout(()=>{
+    computeBinRects();
+    spawnTrash();
+    G.spawnInterval = setInterval(()=>{ if(!G.paused) maybeSpawn(); }, 3500);
+    G.timerInterval = setInterval(()=>{ if(!G.paused) tickTimer(); }, 1000);
+    startLoop();
+  }, 100);
+}
+
+function buildBins(){
+  const row = document.getElementById('binsRow');
+  row.innerHTML='';
+  BIN_TYPES.forEach(b=>{
+    const el=document.createElement('div');
+    el.className='bin';
+    el.id='bin_'+b.id;
+    el.innerHTML=`<div class="bin-icon">${b.icon}🗑️</div><div class="bin-label" style="background:${b.color}22;color:${b.color};border:1px solid ${b.color}44">${b.label}</div>`;
+    row.appendChild(el);
+  });
+}
+
+function computeBinRects(){
+  G.binRects=[];
+  BIN_TYPES.forEach(b=>{
+    const el=document.getElementById('bin_'+b.id);
+    if(!el) return;
+    const r=el.getBoundingClientRect();
+    const fr=document.getElementById('gameField').getBoundingClientRect();
+    G.binRects.push({id:b.id, left:r.left-fr.left, right:r.right-fr.left, top:r.top-fr.top-80, bottom:r.bottom-fr.top+20});
+  });
+}
+
+/* ============================================================
+   TRASH MANAGEMENT
+   ============================================================ */
+function randomBinType(){
+  return BIN_TYPES[Math.floor(Math.random()*BIN_TYPES.length)];
+}
+
+function spawnTrash(){
+  const maxTrash = 3 + G.level;
+  const toSpawn = Math.min(maxTrash - G.trashItems.length, 3 + G.level);
+  for(let i=0;i<toSpawn;i++) createTrashItem();
+}
+
+function maybeSpawn(){
+  const maxTrash = 3 + G.level;
+  if(G.trashItems.length < maxTrash) createTrashItem();
+}
+
+function createTrashItem(){
+  const field = document.getElementById('gameField');
+  const type = randomBinType();
+  const emoji = type.items[Math.floor(Math.random()*type.items.length)];
+  const id = 'trash_'+(++G.trashId);
+  const margin = 60;
+  const binsH = document.getElementById('binsRow').offsetHeight + 20;
+  const usableW = G.fieldW - margin * 2;
+  const usableH = G.fieldH - binsH - margin * 2;
+
+  // Grid-based spread: divide field into cells, pick a free or least-occupied cell
+  const cols = 4, rows = 3;
+  const cellW = usableW / cols;
+  const cellH = usableH / rows;
+
+  // Count existing items per cell
+  const cellCount = Array(cols * rows).fill(0);
+  G.trashItems.forEach(t => {
+    const col = Math.floor((t.x - margin) / cellW);
+    const row = Math.floor((t.y - binsH - margin) / cellH);
+    const ci = Math.max(0, Math.min(rows-1, row)) * cols + Math.max(0, Math.min(cols-1, col));
+    cellCount[ci]++;
+  });
+
+  // Pick the cell with lowest count (with random tiebreak)
+  const minCount = Math.min(...cellCount);
+  const candidates = cellCount.map((c,i) => c===minCount ? i : -1).filter(i => i>=0);
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  const chosenCol = chosen % cols;
+  const chosenRow = Math.floor(chosen / cols);
+
+  // Random position within chosen cell (with inner padding)
+  const pad = 20;
+  const x = margin + chosenCol * cellW + pad + Math.random() * (cellW - pad * 2);
+  const y = binsH + margin + chosenRow * cellH + pad + Math.random() * (cellH - pad * 2);
+
+  const el = document.createElement('div');
+  el.className = 'trash-item';
+  el.id = id;
+  el.textContent = emoji;
+  el.style.left = x+'px';
+  el.style.top  = y+'px';
+  el.style.animationDelay = (Math.random()*2)+'s';
+  field.appendChild(el);
+
+  G.trashItems.push({id, type:type.id, emoji, x, y, el});
+}
+
+/* ============================================================
+   GAME LOOP
+   ============================================================ */
+function startLoop(){
+  if(G.loopId) cancelAnimationFrame(G.loopId);
+  function loop(){
+    if(!G.paused) update();
+    G.loopId = requestAnimationFrame(loop);
+  }
+  G.loopId = requestAnimationFrame(loop);
+}
+
+function update(){
+  const field = document.getElementById('gameField');
+  G.fieldW = field.offsetWidth;
+  G.fieldH = field.offsetHeight;
+
+  let dx=0, dy=0;
+  const spd = G.speed + G.level*0.3;
+  if(G.keys['ArrowLeft']||G.keys['a']) dx-=spd;
+  if(G.keys['ArrowRight']||G.keys['d']) dx+=spd;
+  if(G.keys['ArrowUp']||G.keys['w']) dy-=spd;
+  if(G.keys['ArrowDown']||G.keys['s']) dy+=spd;
+
+  if(dx||dy){
+    // Normalize diagonal
+    if(dx&&dy){ dx/=Math.SQRT2; dy/=Math.SQRT2; }
+    G.px = Math.max(0, Math.min(G.fieldW-36, G.px+dx));
+    G.py = Math.max(0, Math.min(G.fieldH-44, G.py+dy));
+    const player = document.getElementById('player');
+    player.style.left = G.px+'px';
+    player.style.top  = G.py+'px';
+
+    // Flip body
+    document.getElementById('playerBody').style.transform = dx<0?'scaleX(-1)':'';
+  }
+
+  // Check proximity to trash
+  const cx = G.px+18, cy = G.py+22;
+  let nearest = null, nearDist = 40;
+  G.trashItems.forEach(t=>{
+    const tx=t.x+20, ty=t.y+20;
+    const d=Math.hypot(cx-tx, cy-ty);
+    t.el.classList.toggle('nearby', !G.carrying && d<50);
+    if(!G.carrying && d<nearDist){ nearest=t; nearDist=d; }
+  });
+
+  // Auto pick up when very close
+  if(!G.carrying && nearest && nearDist<30) pickUp(nearest);
+
+  // Check bin collision when carrying
+  if(G.carrying){
+    // Player near top (bins area — field y < 0 means above field)
+    const fieldTop = document.getElementById('gameField').getBoundingClientRect().top;
+    const binsBottom = document.getElementById('binsRow').getBoundingClientRect().bottom;
+    const playerAbsTop = fieldTop + G.py;
+
+    if(playerAbsTop < binsBottom + 20){
+      // Find which bin we're over
+      const playerAbsLeft = document.getElementById('gameField').getBoundingClientRect().left + G.px;
+      const overBin = findBinAt(playerAbsLeft);
+      if(overBin) dropInBin(overBin);
+    }
+  }
+}
+
+function findBinAt(absX){
+  let found = null;
+  BIN_TYPES.forEach(b=>{
+    const el = document.getElementById('bin_'+b.id);
+    if(!el) return;
+    const r = el.getBoundingClientRect();
+    if(absX+18 >= r.left && absX+18 <= r.right) found = b.id;
+  });
+  return found;
+}
+
+function pickUp(trash){
+  G.carrying = trash;
+  trash.el.classList.add('carried');
+  const carry = document.getElementById('playerCarry');
+  carry.textContent = trash.emoji;
+  carry.style.display='block';
+}
+
+function dropInBin(binId){
+  if(!G.carrying) return;
+  const trash = G.carrying;
+  const correct = (trash.type === binId);
+
+  // Remove trash
+  trash.el.remove();
+  G.trashItems = G.trashItems.filter(t=>t.id!==trash.id);
+  G.carrying = null;
+  document.getElementById('playerCarry').style.display='none';
+
+  if(correct){
+    // Score: base + time bonus + combo
+    G.combo++;
+    if(G.combo > G.maxCombo) G.maxCombo = G.combo;
+    const base = 100;
+    const timeBonus = Math.floor(G.timeLeft * 2);
+    const comboBonus = (G.combo-1)*20;
+    const pts = base + timeBonus + comboBonus;
+    G.score += pts;
+    showPopup('+'+pts, '#3fb950', G.px, G.py);
+    flashField('good');
+    highlightBin(binId);
+    updateComboHud();
+    // Speed bonus: add time if combo
+    if(G.combo>=3) G.timeLeft = Math.min(G.timeLeft+2, 99);
+  } else {
+    G.combo=0;
+    const penalty = 80;
+    G.score = Math.max(0, G.score-penalty);
+    showPopup('-'+penalty, '#f85149', G.px, G.py);
+    flashField('bad');
+    updateComboHud();
+  }
+
+  document.getElementById('scoreDisplay').textContent = G.score;
+
+  // Level up
+  const newLevel = Math.floor(G.score/800)+1;
+  if(newLevel > G.level){
+    G.level = newLevel;
+    document.getElementById('levelDisplay').textContent = G.level;
+    showLevelUp();
+  }
+
+  // Spawn more if needed
+  setTimeout(()=>{ if(!G.paused) maybeSpawn(); }, 500);
+}
+
+function highlightBin(binId){
+  const el = document.getElementById('bin_'+binId);
+  if(!el) return;
+  el.classList.add('highlight');
+  setTimeout(()=>el.classList.remove('highlight'),400);
+}
+
+function showPopup(text, color, x, y){
+  const field = document.getElementById('gameField');
+  const el = document.createElement('div');
+  el.className='score-popup';
+  el.textContent=text;
+  el.style.color=color;
+  el.style.left=(x+20)+'px';
+  el.style.top=y+'px';
+  field.appendChild(el);
+  setTimeout(()=>el.remove(),1300);
+}
+
+function flashField(type){
+  const field = document.getElementById('gameField');
+  field.classList.remove('flash-good','flash-bad');
+  void field.offsetWidth;
+  field.classList.add(type==='good'?'flash-good':'flash-bad');
+}
+
+function updateComboHud(){
+  const hud = document.getElementById('comboHud');
+  const bar = document.getElementById('comboBar');
+  if(G.combo>=2){
+    hud.style.display='';
+    document.getElementById('comboDisplay').textContent=G.combo;
+    document.getElementById('comboBarNum').textContent=G.combo;
+    bar.style.opacity='1';
+    setTimeout(()=>{ bar.style.opacity='0'; },1500);
+  } else {
+    hud.style.display='none';
+    bar.style.opacity='0';
+  }
+}
+
+function showLevelUp(){
+  const field = document.getElementById('gameField');
+  const el = document.createElement('div');
+  el.style.cssText='position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-family:Prompt,sans-serif;font-size:2rem;font-weight:900;color:#d29922;text-shadow:0 0 20px gold;z-index:30;pointer-events:none;animation:popUp 1.5s forwards;white-space:nowrap;';
+  el.textContent='⬆️ LEVEL UP! Lv.'+G.level;
+  field.appendChild(el);
+  setTimeout(()=>el.remove(),1600);
+  // Bonus time
+  G.timeLeft = Math.min(G.timeLeft+10, 99);
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function tickTimer(){
+  G.timeLeft--;
+  document.getElementById('timerDisplay').textContent = G.timeLeft;
+  if(G.timeLeft<=0) endGame();
+}
+
+/* ============================================================
+   PAUSE / END
+   ============================================================ */
+function pauseGame(){
+  G.paused = !G.paused;
+  if(G.paused){
+    showOverlay('⏸ หยุดชั่วคราว','เกมหยุดอยู่','','',
+      'เล่นต่อ',()=>{ G.paused=false; hideOverlay(); },
+      'ออกจากเกม',()=>{ endGame(true); }
+    );
+  } else {
+    hideOverlay();
+  }
+}
+
+function endGame(quit=false){
+  clearInterval(G.timerInterval);
+  clearInterval(G.spawnInterval);
+  cancelAnimationFrame(G.loopId);
+  G.paused=true;
+
+  // Save score
+  const scores = getScores();
+  const prev = scores[currentUser.username]||0;
+  if(G.score>prev) scores[currentUser.username]=G.score;
+  saveScores(scores);
+
+  const isHigh = G.score>prev;
+  const stars = G.score>=1000?'⭐⭐⭐':G.score>=500?'⭐⭐':G.score>=100?'⭐':'';
+
+  showOverlay(
+    quit?'🚪 ออกจากเกม':'🏁 หมดเวลา!',
+    (isHigh?'🎉 สถิติใหม่! ':'')+'คะแนนของคุณ',
+    G.score, stars,
+    '🔄 เล่นอีกครั้ง', ()=>{ hideOverlay(); initGame(); },
+    '🏆 ดูอันดับ', ()=>{ hideOverlay(); document.getElementById('gameScreen').style.display='none'; showLeaderboard(); }
+  );
+}
+
+function showOverlay(title,msg,score,stars,btn1Label,btn1Fn,btn2Label,btn2Fn){
+  document.getElementById('overlayTitle').textContent=title;
+  document.getElementById('overlayMsg').textContent=msg;
+  document.getElementById('overlayScore').textContent=score||'';
+  document.getElementById('overlayStars').textContent=stars||'';
+
+  const b1=document.getElementById('overlayBtn1');
+  const b1New=b1.cloneNode(false);
+  b1New.textContent=btn1Label;
+  b1New.addEventListener('click', btn1Fn);
+  b1.parentNode.replaceChild(b1New,b1);
+
+  const b2=document.getElementById('overlayBtn2');
+  const b2New=b2.cloneNode(false);
+  if(btn2Label){
+    b2New.style.display='';
+    b2New.textContent=btn2Label;
+    b2New.addEventListener('click', btn2Fn);
+  } else {
+    b2New.style.display='none';
+  }
+  b2.parentNode.replaceChild(b2New,b2);
+
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay(){ document.getElementById('overlay').classList.remove('show'); }
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+document.addEventListener('keydown',e=>{
+  G.keys[e.key]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if(e.key===' ' && G.carrying){
+    // Manual drop: find nearest bin
+    const field = document.getElementById('gameField');
+    const fr = field.getBoundingClientRect();
+    const playerAbs = {
+      x: fr.left + G.px,
+      y: fr.top  + G.py
+    };
+    let minD=Infinity, nearBin=null;
+    BIN_TYPES.forEach(b=>{
+      const el=document.getElementById('bin_'+b.id);
+      if(!el) return;
+      const r=el.getBoundingClientRect();
+      const cx=(r.left+r.right)/2, cy=(r.top+r.bottom)/2;
+      const d=Math.hypot(playerAbs.x+18-cx, playerAbs.y+22-cy);
+      if(d<minD){ minD=d; nearBin=b.id; }
+    });
+    if(nearBin && minD<180) dropInBin(nearBin);
+  }
+});
+document.addEventListener('keyup',e=>{ G.keys[e.key]=false; });
+
+/* ============================================================
+   MOBILE CONTROLS
+   ============================================================ */
+(function(){
+  const btns = [
+    {label:'◀',key:'ArrowLeft',style:'left:0;bottom:60px;'},
+    {label:'▶',key:'ArrowRight',style:'left:120px;bottom:60px;'},
+    {label:'▲',key:'ArrowUp',style:'left:60px;bottom:120px;'},
+    {label:'▼',key:'ArrowDown',style:'left:60px;bottom:0;'},
+    {label:'🎯',key:' ',style:'right:16px;bottom:60px;width:60px;height:60px;font-size:1.6rem;'},
+  ];
+  const container=document.createElement('div');
+  container.style.cssText='position:fixed;bottom:80px;left:16px;z-index:50;display:none;';
+  btns.forEach(b=>{
+    const el=document.createElement('button');
+    el.textContent=b.label;
+    el.style.cssText=`position:absolute;${b.style}width:54px;height:54px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:1.4rem;cursor:pointer;user-select:none;touch-action:none;`;
+    el.addEventListener('touchstart',e=>{ e.preventDefault(); G.keys[b.key]=true; },{passive:false});
+    el.addEventListener('touchend',e=>{ e.preventDefault(); G.keys[b.key]=false; },{passive:false});
+    container.appendChild(el);
+  });
+  document.getElementById('gameScreen').appendChild(container);
+  // Show on touch device
+  if('ontouchstart' in window) container.style.display='block';
+})();
+</script>
+</body>
+</html>
