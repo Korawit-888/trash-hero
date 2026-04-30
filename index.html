@@ -732,10 +732,53 @@ body {
 /* ============================================================
    AUTH
    ============================================================ */
+/* ============================================================
+   SUPABASE CONFIG
+   ============================================================ */
+const SB_URL = 'https://plbbtpmljohdzyybqqiv.supabase.co';
+const SB_KEY = 'sb_publishable_VRxUvbiD2ZN43JaPYZlPiw_p1QniJpB';
+
+async function sbFetch(path, options={}){
+  const res = await fetch(SB_URL + path, {
+    ...options,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...(options.headers||{})
+    }
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ── Users (ยังเก็บ password ใน localStorage เพราะ Supabase ไม่มี auth) ──
 function getUsers(){ return JSON.parse(localStorage.getItem('th_users')||'{}'); }
 function saveUsers(u){ localStorage.setItem('th_users',JSON.stringify(u)); }
-function getScores(){ return JSON.parse(localStorage.getItem('th_scores')||'{}'); }
-function saveScores(s){ localStorage.setItem('th_scores',JSON.stringify(s)); }
+
+// ── Scores: อ่าน/เขียนผ่าน Supabase ──
+async function saveScoreRemote(username, displayName, score){
+  try {
+    await sbFetch('/rest/v1/scores', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ username, display_name: displayName, score })
+    });
+  } catch(e){ console.warn('saveScore error', e); }
+}
+
+async function getScoresRemote(){
+  try {
+    const data = await sbFetch('/rest/v1/scores?select=username,display_name,score&order=score.desc&limit=20');
+    return data || [];
+  } catch(e){ console.warn('getScores error', e); return []; }
+}
 
 let currentUser = null;
 
@@ -850,12 +893,15 @@ function showGuide(activeId){
   switchTo('guideScreen');
 }
 
-function showLeaderboard(){
-  const scores = getScores();
-  const users  = getUsers();
-  const all = Object.entries(scores)
-    .map(([u,s])=>({ username:u, name:(users[u]?.name||u), score:s }))
-    .sort((a,b)=>b.score-a.score);
+async function showLeaderboard(){
+  switchTo('lbScreen');
+  document.getElementById('lbPodium').innerHTML = '';
+  document.getElementById('lbContent').innerHTML = '<div class="lb-empty"><div class="lb-empty-icon">⏳</div>กำลังโหลด...</div>';
+  document.getElementById('lbStatsRow').innerHTML = '';
+  document.getElementById('lbMyRank').innerHTML = '';
+
+  const data = await getScoresRemote();
+  const all = data.map(r=>({ username:r.username, name:r.display_name, score:r.score }));
   const entries = all.slice(0,10);
   const meUser = currentUser?.username;
   const myRank = all.findIndex(e=>e.username===meUser);
@@ -892,7 +938,7 @@ function showLeaderboard(){
     podiumEl.innerHTML = '';
   }
 
-  // List (ranks 4–10 or all if < 4)
+  // List (ranks 4–10)
   const container = document.getElementById('lbContent');
   const listEntries = entries.length > 3 ? entries.slice(3) : [];
   if(entries.length === 0){
@@ -921,8 +967,6 @@ function showLeaderboard(){
   } else {
     myRankEl.innerHTML = '';
   }
-
-  switchTo('lbScreen');
 }
 
 function doRegister(){
@@ -1333,19 +1377,23 @@ function pauseGame(){
   }
 }
 
-function endGame(quit=false){
+async function endGame(quit=false){
   clearInterval(G.timerInterval);
   clearInterval(G.spawnInterval);
   cancelAnimationFrame(G.loopId);
   G.paused=true;
 
-  // Save score
-  const scores = getScores();
-  const prev = scores[currentUser.username]||0;
-  if(G.score>prev) scores[currentUser.username]=G.score;
-  saveScores(scores);
+  // Get previous best from localStorage for comparison
+  const localScores = JSON.parse(localStorage.getItem('th_scores')||'{}');
+  const prev = localScores[currentUser.username]||0;
+  const isHigh = G.score > prev;
 
-  const isHigh = G.score>prev;
+  // Save to localStorage as cache
+  if(isHigh){ localScores[currentUser.username]=G.score; localStorage.setItem('th_scores',JSON.stringify(localScores)); }
+
+  // Save to Supabase (only if new high score)
+  if(isHigh) await saveScoreRemote(currentUser.username, currentUser.name, G.score);
+
   const stars = G.score>=1000?'⭐⭐⭐':G.score>=500?'⭐⭐':G.score>=100?'⭐':'';
 
   showOverlay(
