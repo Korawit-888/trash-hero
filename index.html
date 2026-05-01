@@ -778,9 +778,25 @@ async function saveScoreRemote(username, displayName, score){
 
 async function getScoresRemote(){
   try {
-    const data = await sbFetch('/rest/v1/scores?select=username,display_name,score&order=score.desc&limit=20');
-    return data || [];
-  } catch(e){ console.warn('getScores error', e); return []; }
+    const url = SB_URL + '/rest/v1/scores?select=username,display_name,score&order=score.desc&limit=20';
+    console.log('Fetching:', url);
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    const text = await res.text();
+    console.log('Status:', res.status, 'Response:', text);
+    if(!res.ok) throw new Error('HTTP '+res.status+': '+text);
+    return JSON.parse(text) || [];
+  } catch(e){
+    console.error('getScores error:', e);
+    document.getElementById('lbContent').innerHTML = `<div class="lb-empty" style="color:#f85149">❌ Error: ${e.message}</div>`;
+    return [];
+  }
 }
 
 let currentUser = null;
