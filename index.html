@@ -739,35 +739,38 @@ const SB_URL = 'https://plbbtpmljohdzyybqqiv.supabase.co';
 const SB_KEY = 'sb_publishable_VRxUvbiD2ZN43JaPYZlPiw_p1QniJpB';
 
 async function sbFetch(path, options={}){
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + SB_KEY,
+    'Content-Type': 'application/json',
+  };
+  if(options.prefer) headers['Prefer'] = options.prefer;
+
   const res = await fetch(SB_URL + path, {
-    ...options,
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': options.prefer || '',
-      ...(options.headers||{})
-    }
+    method: options.method || 'GET',
+    headers,
+    body: options.body || undefined
   });
-  if(!res.ok){
-    const err = await res.text();
-    throw new Error(err);
-  }
+
   const text = await res.text();
+  if(!res.ok) throw new Error(text);
   return text ? JSON.parse(text) : null;
 }
 
-// ── Users (ยังเก็บ password ใน localStorage เพราะ Supabase ไม่มี auth) ──
+// ── Users เก็บใน localStorage (password ไม่ควรส่ง server) ──
 function getUsers(){ return JSON.parse(localStorage.getItem('th_users')||'{}'); }
 function saveUsers(u){ localStorage.setItem('th_users',JSON.stringify(u)); }
 
 // ── Scores: อ่าน/เขียนผ่าน Supabase ──
 async function saveScoreRemote(username, displayName, score){
   try {
+    // ลองอัปเดตก่อน ถ้าไม่มีค่อย insert
+    await sbFetch('/rest/v1/scores?username=eq.'+encodeURIComponent(username), {
+      method: 'DELETE'
+    });
     await sbFetch('/rest/v1/scores', {
       method: 'POST',
-      prefer: 'resolution=merge-duplicates',
-      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      prefer: 'return=minimal',
       body: JSON.stringify({ username, display_name: displayName, score })
     });
   } catch(e){ console.warn('saveScore error', e); }
